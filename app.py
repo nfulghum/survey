@@ -1,4 +1,5 @@
-from flask import Flask, request, flash, render_template, redirect, jsonify
+from flask import Flask, request, flash, render_template, redirect
+from flask import session
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey as survey
 
@@ -7,7 +8,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = "itsasecret"
 debug = DebugToolbarExtension(app)
 
-responses = []
+RESPONSES_KEY = 'responses'
 
 
 @app.route('/')
@@ -17,6 +18,7 @@ def home():
 
 @app.route('/start', methods=["post"])
 def start():
+    session[RESPONSES_KEY] = []
     return redirect("/questions/0")
 
 
@@ -24,7 +26,9 @@ def start():
 def answer():
     choice = request.form['answer']
 
+    responses = session[RESPONSES_KEY]
     responses.append(choice)
+    session[RESPONSES_KEY] = responses
 
     if (len(responses) == len(survey.questions)):
         return redirect('/complete')
@@ -34,6 +38,8 @@ def answer():
 
 @app.route('/questions/<int:qid>')
 def questions(qid):
+    responses = session.get(RESPONSES_KEY)
+
     if (responses is None):
         return redirect('/')
     if (len(responses) == len(survey.questions)):
